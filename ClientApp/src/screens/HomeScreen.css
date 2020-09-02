@@ -1,0 +1,13 @@
+.home-screen > .row {
+    margin-bottom: 1rem;
+}
+
+.home-screen .provider-button {
+    cursor: pointer;
+    border: 3px solid #ffffff;
+    border-radius: 5px;
+}
+
+.home-screen .provider-button.active {
+    border: 3px solid #007bff;
+}
