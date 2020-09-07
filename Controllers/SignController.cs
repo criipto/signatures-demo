@@ -43,21 +43,29 @@ namespace signing_with_aspnet_core3.Controllers
             public bool showUnderstanding {get; set;}
         }
 
+        public class PdfSeal {
+            public Int64 x {get; set;}
+            public Int64 y {get; set;}
+            public Int64 page {get; set;}
+        }
+
         public class PdfSignInput {
-            public SignProperties signProperties {get; set;} = new SignProperties {
-                orderName = "Demo signing"
-            };
             public string acr_value {get; set;} = "urn:grn:authn:no:bankid";
             public string pdf {get; set;}
             public string language {get; set;} = "en";
+
+            public SignProperties signProperties {get; set;} = new SignProperties {
+                orderName = "Demo signing"
+            };
+            public PdfSeal seal {get; set;} = new PdfSeal {
+                x = 40,
+                y = 660,
+                page = 1
+            };
         }
         public class PdfSignRequest {
             public class PdfDocument {
-                public class PdfSeal {
-                    public Int64 x {get; set;}
-                    public Int64 y {get; set;}
-                    public Int64 page {get; set;}
-                }
+                
                 public string description {get; set;}
                 public string pdf {get; set;}
                 public PdfSeal seal {get; set;}
@@ -90,11 +98,7 @@ namespace signing_with_aspnet_core3.Controllers
                     new PdfSignRequest.PdfDocument{
                         description = "Demo document",
                         pdf = input.pdf,
-                        seal = new PdfSignRequest.PdfDocument.PdfSeal{
-                            x = 595 - 40,
-                            y = 40,
-                            page = 1
-                        }
+                        seal = input.seal
                     }
                 }
             };

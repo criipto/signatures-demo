@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { ButtonGroup, Button, Input, Container, Row, Col} from 'reactstrap';
-import jwtDecode from 'jwt-decode';
 import samplePdf from '../assets/sample.pdf';
 
 import logo_dknemid from '../assets/logo-e-id-dk-nemid.svg';
@@ -10,9 +9,21 @@ import logo_sebankid from '../assets/logo-e-id-se-bankid.svg';
 
 import './HomeScreen.css';
 
+import pdfjs from 'pdfjs-dist/build/pdf';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry';
+
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
 const toBase64 = file => new Promise((resolve, reject) => {
   const reader = new FileReader();
   reader.readAsDataURL(file);
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = error => reject(error);
+});
+
+const toArrayBuffer = file => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.readAsArrayBuffer(file);
   reader.onload = () => resolve(reader.result);
   reader.onerror = error => reject(error);
 });
@@ -58,6 +69,20 @@ export default function HomeScreen() {
   const handleSubmit = async () => {
     setSignature(null);
 
+    let seal;
+    if (mode === 'pdf') {
+      const doc = await pdfjs.getDocument(await toArrayBuffer(file)).promise;
+      const page = await doc.getPage(1);
+      const viewport = page.getViewport({ scale: 1.0 });
+      console.log(viewport);
+
+      seal = {
+        page: 1,
+        x: 40,
+        y: viewport.height - 40 - 50
+      };
+    }
+
     const url = mode === 'text' ? '/sign/text' : '/sign/pdf';
     const data = mode === 'text' ? {
       text,
@@ -66,7 +91,8 @@ export default function HomeScreen() {
     } : {
       pdf: (await toBase64(file)).replace('data:application/pdf;base64,', ''),
       language,
-      acr_value: acrValue
+      acr_value: acrValue,
+      seal
     };
 
     axios.post(url, data).then(response => {
@@ -75,7 +101,7 @@ export default function HomeScreen() {
   };
 
   const messageListener = useCallback(event => {
-    if (event.data.startsWith('SIGN_TOKEN_RESPONSE:')) {
+    if (event.data && typeof event.data === "string" && event.data.startsWith('SIGN_TOKEN_RESPONSE:')) {
       const signature = event.data.replace('SIGN_TOKEN_RESPONSE:', '');
       setSignature(JSON.parse(window.atob(signature)));
     }
@@ -105,14 +131,14 @@ export default function HomeScreen() {
         <Col>
           <select className="form-control" value={language} onChange={(event) => setLanguage(event.target.value)}>
             {provider.languages.map(language => (
-              <option value={language}>{language}</option>
+              <option key={language} value={language}>{language}</option>
             ))}
           </select>
         </Col>
         <Col>
           <select className="form-control" value={acrValue} onChange={(event) => setAcrValue(event.target.value)}>
             {provider.acr_values.map(value => (
-              <option value={value}>{value}</option>
+              <option key={value} value={value}>{value}</option>
             ))}
           </select>
         </Col>

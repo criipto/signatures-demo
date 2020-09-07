@@ -9,6 +9,7 @@
     "jwt-decode": "^2.2.0",
     "merge": "^1.2.1",
     "oidc-client": "^1.9.0",
+    "pdfjs-dist": "^2.4.456",
     "react": "^16.0.0",
     "react-dom": "^16.0.0",
     "react-router-bootstrap": "^0.25.0",
