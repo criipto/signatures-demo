@@ -74,12 +74,11 @@ export default function HomeScreen() {
       const doc = await pdfjs.getDocument(await toArrayBuffer(file)).promise;
       const page = await doc.getPage(1);
       const viewport = page.getViewport({ scale: 1.0 });
-      console.log(viewport);
 
       seal = {
         page: 1,
         x: 40,
-        y: viewport.height - 40 - 50
+        y: Math.round(viewport.height - 40 - 50)
       };
     }
 
