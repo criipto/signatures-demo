@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Security.Authentication;
 
 namespace signing_with_aspnet_core3
 {
@@ -27,7 +28,8 @@ namespace signing_with_aspnet_core3
             {
                 return new HttpClientHandler()
                 {
-                    AllowAutoRedirect = false
+                    AllowAutoRedirect = false,
+                    SslProtocols =  SslProtocols.Tls13 | SslProtocols.Tls12 | SslProtocols.Tls11
                 };
             });
 
