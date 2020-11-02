@@ -33,7 +33,7 @@ namespace signing_with_aspnet_core3.Controllers
         }
 
         public static string Base64Encode(string plainText) {
-            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+            var plainTextBytes = System.Text.Encoding.GetEncoding("ISO-8859-1").GetBytes(plainText);
             return System.Convert.ToBase64String(plainTextBytes);
         }
 
