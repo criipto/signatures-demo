@@ -32,8 +32,8 @@ namespace signing_with_aspnet_core3.Controllers
 
         }
 
-        public static string Base64Encode(string plainText) {
-            var plainTextBytes = System.Text.Encoding.GetEncoding("ISO-8859-1").GetBytes(plainText);
+        public static string Base64Encode(string plainText, string encoding) {
+            var plainTextBytes = System.Text.Encoding.GetEncoding(encoding).GetBytes(plainText);
             return System.Convert.ToBase64String(plainTextBytes);
         }
 
@@ -83,6 +83,13 @@ namespace signing_with_aspnet_core3.Controllers
             public string text {get; set;}
             public string language {get; set;} = "en";
         }
+        public class TextSignRequest {
+            public string signtext {get; set;}
+            public string orderName {get; set;}
+            public string showUnderstanding {get; set;}
+            public string showConfirmation {get; set;}
+        }
+
         public class SignResponse {
             public string redirectUri {get; set; }
         }
@@ -131,9 +138,12 @@ namespace signing_with_aspnet_core3.Controllers
         }
 
         [HttpPost("text")]
-        public SignResponse Text(TextSignInput request)
+        public async Task<SignResponse> Text(TextSignInput request)
         {
-            string baseUrl = $"https://{_configuration["CriiptoVerify:DnsName"]}/sign/text/";
+            string baseUrl = $"https://{_configuration["CriiptoVerify:DnsName"]}/sign/text";
+            string text = request.text;
+            string encoding = request.acr_value.StartsWith("urn:grn:authn:no") ? "ISO-8859-1" : "UTF-8";
+            string encodedText = Base64Encode(text, encoding);
             
             var query = new Dictionary<string, string>()
             {
@@ -141,18 +151,35 @@ namespace signing_with_aspnet_core3.Controllers
                 { "wtrealm",  _configuration["CriiptoVerify:ClientId"] },
                 { "wreply", $"{this.Request.Scheme}://{this.Request.Host}/sign/callback" },
                 { "wauth", request.acr_value },
-                { "signtext", Base64Encode(request.text) },
-                { "orderName", request.signProperties.orderName},
-                { "showUnderstanding", request.signProperties.showUnderstanding.ToString().ToLower()},
-                { "showConfirmation", request.signProperties.showConfirmation.ToString().ToLower()},
-                { "ui_locales", request.language }
+                { "ui_locales", request.language },
+                { "signtext", encodedText },
+                { "orderName", request.signProperties.orderName },
+                { "showUnderstanding", request.signProperties.showUnderstanding.ToString().ToLower() },
+                { "showConfirmation", request.signProperties.showConfirmation.ToString().ToLower() }
             };
 
-            var url = new Uri(QueryHelpers.AddQueryString(baseUrl, query));
+            if (encodedText.Length < 500) {
+                var url = new Uri(QueryHelpers.AddQueryString(baseUrl, query));
 
-            return new SignResponse {
-                redirectUri = url.AbsoluteUri
-            };
+                return new SignResponse {
+                    redirectUri = url.AbsoluteUri
+                };
+            } else {
+                var formBody = new FormUrlEncodedContent(query);
+                var url = new Uri(baseUrl);
+
+                var client = _clientFactory.CreateClient("criipto-http-client");
+                using var httpResponse = await client.PostAsync(
+                    url,
+                    formBody
+                );
+                httpResponse.EnsureSuccessStatusCode();
+                var content = await httpResponse.Content.ReadAsStringAsync();
+
+                return new SignResponse {
+                    redirectUri = url.AbsoluteUri
+                };
+            }
         }
 
         public class CallbackResponse {
