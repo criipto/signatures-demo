@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { ButtonGroup, Button, Input, Container, Row, Col} from 'reactstrap';
 import samplePdf from '../assets/sample.pdf';
@@ -51,9 +51,11 @@ const PROVIDERS = [
 ]
 
 export default function HomeScreen() {
+  const formRef = useRef();
   const [mode, setMode] = useState('text');
   const [text, setText] = useState('');
   const [file, setFile] = useState(null);
+  const [response, setResponse] = useState(null);
   const [provider, setProvider] = useState(PROVIDERS.find(search => search.key === 'nobankid'));
   const [signature, setSignature] = useState(null);
   const [language, setLanguage] = useState(provider.languages[0]);
@@ -68,6 +70,7 @@ export default function HomeScreen() {
 
   const handleSubmit = async () => {
     setSignature(null);
+    setResponse(null);
 
     let seal;
     if (mode === 'pdf') {
@@ -95,13 +98,18 @@ export default function HomeScreen() {
     };
 
     axios.post(url, data).then(response => {
-      window.open(response.data.redirectUri, '_blank');
+      if (response.data.body) {
+        setResponse(response.data);
+      } else {
+        window.open(response.data.redirectUri, '_blank');
+      }
     }).catch(console.log.bind(console));
   };
 
   const messageListener = useCallback(event => {
     if (event.data && typeof event.data === "string" && event.data.startsWith('SIGN_TOKEN_RESPONSE:')) {
       const signature = event.data.replace('SIGN_TOKEN_RESPONSE:', '');
+      setResponse(null);
       setSignature(JSON.parse(window.atob(signature)));
     }
   }, []);
@@ -110,6 +118,12 @@ export default function HomeScreen() {
     window.addEventListener('message', messageListener);
     return () => window.removeEventListener('message', messageListener);
   }, []);
+
+  useEffect(() => {
+    if (!response) return;
+
+    formRef.current.submit();
+  }, [response])
 
   return (
     <Container className="home-screen">
@@ -167,6 +181,11 @@ export default function HomeScreen() {
           {mode === 'pdf' && (<Col><iframe style={{border: 0, height: '500px', width: '100%'}} src={`data:application/pdf;base64,${signature.evidence[0].padesSignedPdf}`}></iframe></Col>)}
         </Row>
       )}
+      <form target="_blank" action={response && response.redirectUri} ref={formRef}>
+        {response && response.body && Object.keys(response.body).map(key => (
+          <input key={key} type="hidden" name={key} value={response.body[key]} />
+        ))}
+      </form>
     </Container>
   );
 }

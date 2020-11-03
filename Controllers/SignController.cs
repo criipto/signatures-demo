@@ -92,6 +92,8 @@ namespace signing_with_aspnet_core3.Controllers
 
         public class SignResponse {
             public string redirectUri {get; set; }
+
+            public Dictionary<string,string> body {get; set;}
         }
 
         [HttpPost("pdf")]
@@ -138,7 +140,7 @@ namespace signing_with_aspnet_core3.Controllers
         }
 
         [HttpPost("text")]
-        public async Task<SignResponse> Text(TextSignInput request)
+        public SignResponse Text(TextSignInput request)
         {
             string baseUrl = $"https://{_configuration["CriiptoVerify:DnsName"]}/sign/text";
             string text = request.text;
@@ -165,19 +167,11 @@ namespace signing_with_aspnet_core3.Controllers
                     redirectUri = url.AbsoluteUri
                 };
             } else {
-                var formBody = new FormUrlEncodedContent(query);
                 var url = new Uri(baseUrl);
 
-                var client = _clientFactory.CreateClient("criipto-http-client");
-                using var httpResponse = await client.PostAsync(
-                    url,
-                    formBody
-                );
-                httpResponse.EnsureSuccessStatusCode();
-                var content = await httpResponse.Content.ReadAsStringAsync();
-
                 return new SignResponse {
-                    redirectUri = url.AbsoluteUri
+                    redirectUri = url.AbsoluteUri,
+                    body = query
                 };
             }
         }
