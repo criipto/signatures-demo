@@ -181,7 +181,7 @@ export default function HomeScreen() {
           {mode === 'pdf' && (<Col><iframe style={{border: 0, height: '500px', width: '100%'}} src={`data:application/pdf;base64,${signature.evidence[0].padesSignedPdf}`}></iframe></Col>)}
         </Row>
       )}
-      <form target="_blank" action={response && response.redirectUri} ref={formRef}>
+      <form target="_blank" method="POST" action={response && response.redirectUri} ref={formRef}>
         {response && response.body && Object.keys(response.body).map(key => (
           <input key={key} type="hidden" name={key} value={response.body[key]} />
         ))}
