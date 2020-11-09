@@ -4,6 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
@@ -204,6 +205,18 @@ namespace signing_with_aspnet_core3.Controllers
                 MaximumTokenSizeInBytes = int.MaxValue
             };
 
+            var regexTimeLimit = TimeSpan.Parse(_configuration["CriiptoVerify:JwtRegexTimeout"]);
+            var jwtPattern = System.IdentityModel.Tokens.Jwt.JwtConstants.JsonCompactSerializationRegex;
+            // JWT variant of
+            //  https://stackoverflow.com/questions/1732348/regex-match-open-tags-except-xhtml-self-contained-tags/1732454#1732454
+            // forces this when your CPU is not fast enough given the size of
+            // document you need to sign:
+            Microsoft.IdentityModel.JsonWebTokens.JwtTokenUtilities.RegexJws =
+                new Regex(
+                    jwtPattern,
+                    RegexOptions.Compiled | RegexOptions.CultureInvariant,
+                    regexTimeLimit
+                );
             SecurityToken validatedToken = null;
             var claimsPrincipal = tokenHandler.ValidateToken(response.signature, validationParams, out validatedToken);
             var jwtToken = validatedToken as JwtSecurityToken;
@@ -215,4 +228,5 @@ namespace signing_with_aspnet_core3.Controllers
             return View();
         }
     }
+
 }
