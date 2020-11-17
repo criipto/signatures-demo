@@ -28,6 +28,16 @@ const toArrayBuffer = file => new Promise((resolve, reject) => {
   reader.onerror = error => reject(error);
 });
 
+function base64ToBlob( base64, type = "application/pdf" ) {
+  const binStr = atob( base64 );
+  const len = binStr.length;
+  const arr = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    arr[ i ] = binStr.charCodeAt( i );
+  }
+  return new Blob( [ arr ], { type: type } );
+}
+
 const PROVIDERS = [
   {
     key: 'dknemid',
@@ -123,7 +133,7 @@ export default function HomeScreen() {
     if (!response) return;
 
     formRef.current.submit();
-  }, [response])
+  }, [response]);
 
   return (
     <Container className="home-screen">
@@ -178,7 +188,7 @@ export default function HomeScreen() {
       {signature && (
         <Row>
           <Col><Input type="textarea" value={JSON.stringify(signature, null, 2)} style={{height: '500px'}} /></Col>
-          {mode === 'pdf' && (<Col><iframe style={{border: 0, height: '500px', width: '100%'}} src={`data:application/pdf;base64,${signature.evidence[0].padesSignedPdf}`}></iframe></Col>)}
+          {mode === 'pdf' && (<Col><iframe style={{border: 0, height: '500px', width: '100%'}} src={URL.createObjectURL(base64ToBlob(signature.evidence[0].padesSignedPdf))}></iframe></Col>)}
         </Row>
       )}
       <form target="_blank" method="POST" action={response && response.redirectUri} ref={formRef}>
