@@ -182,6 +182,8 @@ namespace signing_with_aspnet_core3.Controllers
         }
         [HttpPost("callback")]
         [Consumes("application/x-www-form-urlencoded")]
+        [DisableRequestSizeLimit]
+        [RequestFormLimits(ValueLengthLimit = 20971520)]
         public async Task<IActionResult> Callback([FromForm] CallbackResponse response)
         {
             var client = _clientFactory.CreateClient();
