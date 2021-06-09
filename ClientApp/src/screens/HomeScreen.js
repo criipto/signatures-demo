@@ -56,7 +56,7 @@ const PROVIDERS = [
     key: 'sebankid',
     logo: logo_sebankid,
     languages: ['sv', 'en'],
-    acr_values: ['urn:grn:authn:se:bankid:same-device', 'urn:grn:authn:se:bankid:another-device']
+    acr_values: ['urn:grn:authn:se:bankid:same-device', 'urn:grn:authn:se:bankid:another-device', 'urn:grn:authn:se:bankid:another-device:qr']
   }
 ]
 
