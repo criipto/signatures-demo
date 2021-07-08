@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { ButtonGroup, Button, FormGroup, Label, Input, Container, Row, Col, Form} from 'reactstrap';
+import { ButtonGroup, Button, FormGroup, Label, Input, Container, Row, Col} from 'reactstrap';
 import samplePdf from '../assets/sample.pdf';
 
 import logo_dknemid from '../assets/logo-e-id-dk-nemid.svg';
@@ -168,7 +168,7 @@ export default function HomeScreen() {
   useEffect(() => {
     window.addEventListener('message', messageListener);
     return () => window.removeEventListener('message', messageListener);
-  }, []);
+  }, [messageListener]);
 
   useEffect(() => {
     if (!response) return;
@@ -181,7 +181,7 @@ export default function HomeScreen() {
       <Row>
         {PROVIDERS.map(item => (
           <Col key={item.key}>
-            <img className={"provider-button" + (item === provider ? ' active' : '')} src={item.logo} onClick={() => handleProvider(item)} />
+            <img className={"provider-button" + (item === provider ? ' active' : '')} src={item.logo} alt={item.key} onClick={() => handleProvider(item)} />
           </Col>
         ))}
       </Row>
@@ -265,11 +265,16 @@ export default function HomeScreen() {
       </Row>
       {signature && (
         <Row>
-          <Col><Input type="textarea" value={JSON.stringify(signature, null, 2)} style={{height: `${(Array.isArray(signature.evidence) ? signature.evidence.length : 1) * 500}px`}} /></Col>
+          <Col><Input type="textarea" readOnly value={JSON.stringify(signature, null, 2)} style={{height: `${(Array.isArray(signature.evidence) ? signature.evidence.length : 1) * 500}px`}} /></Col>
           {mode === 'pdf' && (
             <Col>
-              {signature.evidence.map(evidence => (
-                <iframe style={{border: 0, height: '500px', width: '100%'}} src={URL.createObjectURL(base64ToBlob(evidence.padesSignedPdf))}></iframe>
+              {signature.evidence.map((evidence, index) => (
+                <iframe
+                  key={index}
+                  style={{border: 0, height: '500px', width: '100%'}}
+                  src={URL.createObjectURL(base64ToBlob(evidence.padesSignedPdf))}
+                  title={`PDF result ${index + 1}`}
+                />
               ))}
             </Col>
           )}
