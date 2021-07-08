@@ -85,7 +85,6 @@ export default function HomeScreen() {
   };
 
   const handleFiles = async (event) => {
-    // console.log(event.target.files);
     const files = Array.from(event.target.files);
     event.target.value = '';
 
@@ -105,8 +104,6 @@ export default function HomeScreen() {
     }));
     setDocuments((old) => old.concat(documents));
   };
-
-  console.log(documents);
 
   const handleSeal = (document, key, value) => {
     value = Math.round(value);
@@ -269,7 +266,7 @@ export default function HomeScreen() {
       </Row>
       {signature && (
         <Row>
-          <Col><Input type="textarea" value={JSON.stringify(signature, null, 2)} style={{height: `${(signature.evidence.length || 1) * 500}px`}} /></Col>
+          <Col><Input type="textarea" value={JSON.stringify(signature, null, 2)} style={{height: `${(Array.isArray(signature.evidence) ? signature.evidence.length : 1) * 500}px`}} /></Col>
           {mode === 'pdf' && (
             <Col>
               {signature.evidence.map(evidence => (
