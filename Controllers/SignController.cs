@@ -43,6 +43,14 @@ namespace signing_with_aspnet_core3.Controllers
             public bool showConfirmation {get; set;}
             public bool showUnderstanding {get; set;}
         }
+        public class PdfDocumentInput {
+            public string pdf {get; set;}
+            public PdfSeal seal {get; set;} = new PdfSeal {
+                x = 40,
+                y = 660,
+                page = 1
+            };
+        }
 
         public class PdfSeal {
             public Int64 x {get; set;}
@@ -58,11 +66,8 @@ namespace signing_with_aspnet_core3.Controllers
             public SignProperties signProperties {get; set;} = new SignProperties {
                 orderName = "Demo signing"
             };
-            public PdfSeal seal {get; set;} = new PdfSeal {
-                x = 40,
-                y = 660,
-                page = 1
-            };
+
+            public List<PdfDocumentInput> documents {get; set;}
         }
         public class PdfSignRequest {
             public class PdfDocument {
@@ -104,13 +109,11 @@ namespace signing_with_aspnet_core3.Controllers
                 signProperties = new SignProperties{
                     orderName = "Demo signing"
                 },
-                documents = new List<PdfSignRequest.PdfDocument>{
-                    new PdfSignRequest.PdfDocument{
-                        description = "Demo document",
-                        pdf = input.pdf,
-                        seal = input.seal
-                    }
-                }
+                documents = input.documents.Select(document => new PdfSignRequest.PdfDocument{
+                    description = "Demo document",
+                    pdf = document.pdf,
+                    seal = document.seal
+                }).ToList()
             };
             var jsonBody = new StringContent(
                 JsonConvert.SerializeObject(body),
