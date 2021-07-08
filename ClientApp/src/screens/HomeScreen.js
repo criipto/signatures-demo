@@ -107,7 +107,6 @@ export default function HomeScreen() {
 
   const handleSeal = (document, key, value) => {
     value = Math.round(value);
-    console.log(document, key, value);
 
     setDocuments(documents => {
       return documents.map(search => {
