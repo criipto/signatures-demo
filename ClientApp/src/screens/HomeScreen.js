@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { ButtonGroup, Button, Input, Container, Row, Col} from 'reactstrap';
+import { ButtonGroup, Button, FormGroup, Label, Input, Container, Row, Col} from 'reactstrap';
 import samplePdf from '../assets/sample.pdf';
 
 import logo_dknemid from '../assets/logo-e-id-dk-nemid.svg';
@@ -64,7 +64,7 @@ export default function HomeScreen() {
   const formRef = useRef();
   const [mode, setMode] = useState('text');
   const [text, setText] = useState('');
-  const [file, setFile] = useState(null);
+  const [documents, setDocuments] = useState([]);
   const [response, setResponse] = useState(null);
   const [provider, setProvider] = useState(PROVIDERS.find(search => search.key === 'nobankid'));
   const [signature, setSignature] = useState(null);
@@ -78,21 +78,63 @@ export default function HomeScreen() {
     if (!provider.pdf) setMode('text');    
   }
 
-  const handleSubmit = async () => {
+  const handleClear = () => {
+    setText('');
+    setDocuments([]);
     setSignature(null);
-    setResponse(null);
+  };
 
-    let seal;
-    if (mode === 'pdf') {
+  const handleFiles = async (event) => {
+    const files = Array.from(event.target.files);
+    event.target.value = '';
+
+    const documents = await Promise.all(files.map(async (file) => {
       const doc = await pdfjs.getDocument(await toArrayBuffer(file)).promise;
       const page = await doc.getPage(1);
       const viewport = page.getViewport({ scale: 1.0 });
 
-      seal = {
-        page: 1,
-        x: 40,
-        y: Math.round(viewport.height - 40 - 50)
-      };
+      return {
+        seal: {
+          page: 1,
+          x: 40,
+          y: Math.round(viewport.height - 40 - 50)
+        },
+        file
+      }
+    }));
+    setDocuments((old) => old.concat(documents));
+  };
+
+  const handleSeal = (document, key, value) => {
+    value = Math.round(value);
+
+    setDocuments(documents => {
+      return documents.map(search => {
+        if (search !== document) return search;
+
+        return {
+          ...search,
+          seal: {
+            ...search.seal,
+            [key]: value
+          }
+        }
+      });
+    });
+  };
+
+  const handleSubmit = async () => {
+    setSignature(null);
+    setResponse(null);
+
+    let documentInput;
+    if (mode === 'pdf') {
+      documentInput = await Promise.all(documents.map(async (document) => {
+        return {
+          seal: document.seal,
+          pdf: (await toBase64(document.file)).replace('data:application/pdf;base64,', ''),
+        }
+      }));
     }
 
     const url = mode === 'text' ? '/sign/text' : '/sign/pdf';
@@ -101,10 +143,9 @@ export default function HomeScreen() {
       language,
       acr_value: acrValue
     } : {
-      pdf: (await toBase64(file)).replace('data:application/pdf;base64,', ''),
+      documents: documentInput,
       language,
-      acr_value: acrValue,
-      seal
+      acr_value: acrValue
     };
 
     axios.post(url, data).then(response => {
@@ -127,7 +168,7 @@ export default function HomeScreen() {
   useEffect(() => {
     window.addEventListener('message', messageListener);
     return () => window.removeEventListener('message', messageListener);
-  }, []);
+  }, [messageListener]);
 
   useEffect(() => {
     if (!response) return;
@@ -140,7 +181,7 @@ export default function HomeScreen() {
       <Row>
         {PROVIDERS.map(item => (
           <Col key={item.key}>
-            <img className={"provider-button" + (item === provider ? ' active' : '')} src={item.logo} onClick={() => handleProvider(item)} />
+            <img className={"provider-button" + (item === provider ? ' active' : '')} src={item.logo} alt={item.key} onClick={() => handleProvider(item)} />
           </Col>
         ))}
       </Row>
@@ -172,14 +213,51 @@ export default function HomeScreen() {
             <Input type="textarea" placeholder="Enter text to sign ..." value={text} onChange={(event) => setText(event.target.value)} />
           ) : (
             <div>
-              <input type="file" onChange={(event) => setFile(event.target.files[0])} />
+              {documents.length ? (
+                <div className="float-right">
+                  <Button color="default" onClick={handleClear}>Clear</Button>
+                </div>
+              ) : null}
+              <input type="file" onChange={handleFiles} multiple />
               <a href={samplePdf}>Download sample</a>
+
+              {documents.length ? (
+                <Row className="files-input-list">
+                  {documents.map((document, index) => (
+                    <Col key={index} md={4}>
+                      <strong>{document.file.name}</strong>
+
+                      <Row form>
+                        <Col>
+                          <FormGroup>
+                            <Label>Seal page</Label>
+                            <Input type="number" value={document.seal.page} onChange={(event) => handleSeal(document, 'page', event.target.value)} />
+                          </FormGroup>
+                        </Col>
+                        <Col>
+                          <FormGroup>
+                            <Label>Seal x</Label>
+                            <Input type="number" value={document.seal.x} onChange={(event) => handleSeal(document, 'x', event.target.value)} />
+                          </FormGroup>
+                        </Col>
+                        <Col>
+                          <FormGroup>
+                            <Label>Seal y</Label>
+                            <Input type="number" value={document.seal.y} onChange={(event) => handleSeal(document, 'y', event.target.value)} />
+                          </FormGroup>
+                        </Col>
+                      </Row>
+                    </Col>
+                  ))}
+                </Row>
+              ) : null}
             </div>
           )}
         </Col>
       </Row>
       <Row>
         <Col>
+          <Button color="default" onClick={handleClear}>Clear</Button>
           <div className="float-right">
             (Allow popups) <Button color="primary" onClick={handleSubmit}>Sign now</Button>
           </div>
@@ -187,8 +265,19 @@ export default function HomeScreen() {
       </Row>
       {signature && (
         <Row>
-          <Col><Input type="textarea" value={JSON.stringify(signature, null, 2)} style={{height: '500px'}} /></Col>
-          {mode === 'pdf' && (<Col><iframe style={{border: 0, height: '500px', width: '100%'}} src={URL.createObjectURL(base64ToBlob(signature.evidence[0].padesSignedPdf))}></iframe></Col>)}
+          <Col><Input type="textarea" readOnly value={JSON.stringify(signature, null, 2)} style={{height: `${(Array.isArray(signature.evidence) ? signature.evidence.length : 1) * 500}px`}} /></Col>
+          {mode === 'pdf' && (
+            <Col>
+              {signature.evidence.map((evidence, index) => (
+                <iframe
+                  key={index}
+                  style={{border: 0, height: '500px', width: '100%'}}
+                  src={URL.createObjectURL(base64ToBlob(evidence.padesSignedPdf))}
+                  title={`PDF result ${index + 1}`}
+                />
+              ))}
+            </Col>
+          )}
         </Row>
       )}
       <form target="_blank" method="POST" action={response && response.redirectUri} ref={formRef}>

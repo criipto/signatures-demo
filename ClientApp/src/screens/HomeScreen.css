@@ -11,3 +11,7 @@
 .home-screen .provider-button.active {
     border: 3px solid #007bff;
 }
+
+.home-screen .files-input-list {
+    margin: 10px 0px;
+}
