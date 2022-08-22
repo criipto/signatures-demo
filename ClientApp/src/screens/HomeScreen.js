@@ -68,6 +68,7 @@ export default function HomeScreen() {
   const [response, setResponse] = useState(null);
   const [provider, setProvider] = useState(PROVIDERS.find(search => search.key === 'nobankid'));
   const [signature, setSignature] = useState(null);
+  const [error, setError] = useState(null);
   const [language, setLanguage] = useState(provider.languages[0]);
   const [acrValue, setAcrValue] = useState(provider.acr_values[0]);
 
@@ -154,7 +155,9 @@ export default function HomeScreen() {
       } else {
         window.open(response.data.redirectUri, '_blank');
       }
-    }).catch(console.log.bind(console));
+    }).catch(error => {
+      setError(error.toString());
+    });
   };
 
   const messageListener = useCallback(event => {
@@ -255,6 +258,13 @@ export default function HomeScreen() {
           )}
         </Col>
       </Row>
+      {error && (
+        <Row>
+          <Col>
+            <p className="alert alert-danger">{error}</p>
+          </Col>
+        </Row>
+      )}
       <Row>
         <Col>
           <Button color="default" onClick={handleClear}>Clear</Button>

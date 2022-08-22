@@ -103,7 +103,7 @@ namespace signing_with_aspnet_core3.Controllers
         }
 
         [HttpPost("pdf")]
-        public async Task<SignResponse> Pdf(PdfSignInput input)
+        public async Task<JsonResult> Pdf(PdfSignInput input)
         {
             var body = new PdfSignRequest{
                 signProperties = new SignProperties{
@@ -137,10 +137,16 @@ namespace signing_with_aspnet_core3.Controllers
                 url,
                 jsonBody
             );
-            httpResponse.EnsureSuccessStatusCode();
 
-            var jsonString = await httpResponse.Content.ReadAsStringAsync();
-            return JsonConvert.DeserializeObject<SignResponse>(jsonString);
+            if (httpResponse.IsSuccessStatusCode) {
+                var jsonString = await httpResponse.Content.ReadAsStringAsync();
+                return Json(JsonConvert.DeserializeObject<SignResponse>(jsonString));
+            } 
+            else {
+                HttpContext.Response.StatusCode = (int)httpResponse.StatusCode;
+                var error = await httpResponse.Content.ReadAsStringAsync();
+                return Json(new {error = error});
+            }
         }
 
         [HttpPost("text")]
